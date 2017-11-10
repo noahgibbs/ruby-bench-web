@@ -77,6 +77,25 @@ class RemoteServerJob < ActiveJob::Base
     )
   end
 
+  def ruby_release_rrb(ssh, ruby_version, options)
+    execute_ssh_commands(ssh,
+      [
+        'docker pull rubybench/ruby_releases_rrb',
+        'docker run --name discourse_redis -d redis:2.8.19',
+        'docker run --name discourse_postgres -d postgres:9.3.5',
+        "docker run --rm
+          --link discourse_postgres:postgres
+          --link discourse_redis:redis
+          -e \"RUBY_VERSION=#{ruby_version}\"
+          -e \"API_NAME=#{secrets.api_name}\"
+          -e \"API_PASSWORD=#{secrets.api_password}\"
+          rubybench/ruby_releases_rrb".squish,
+        'docker stop discourse_postgres discourse_redis',
+        'docker rm -v discourse_postgres discourse_redis'
+      ]
+    )
+  end
+
   def ruby_commit_discourse(ssh, commit_hash, options)
     execute_ssh_commands(ssh,
       [
